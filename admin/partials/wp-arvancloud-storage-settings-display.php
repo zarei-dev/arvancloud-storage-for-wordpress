@@ -14,12 +14,31 @@
         $acs_settings	     = get_option( 'acs_settings' );
 
     }
-    ?>
 
-    <H1><?php echo __( 'Settings', 'arvancloud-object-storage' ) ?></H1>
-    <hr>
+    if ( isset( $_GET['bulk_upload'] ) && $_GET['bulk_upload'] == true ) {
+        ?>
 
-    <?php
+        <div class="ar-heading">
+            <H1><?php _e( 'Move files to the bucket', 'arvancloud-object-storage' ) ?></H1>
+        </div>
+        <hr>
+        <?php
+        require_once( ACS_PLUGIN_ROOT . 'admin/partials/wp-arvancloud-move-files.php' );
+        return;
+    } else {
+        $bulk_upload_url = esc_url( add_query_arg(array(
+            'page' => ACS_SLUG,
+            'bulk_upload' => true,
+        ), admin_url()) );
+        ?>
+        <div class="ar-heading">
+            <H1><?php echo __( 'Settings', 'arvancloud-object-storage' ) ?></H1>
+            <a href="<?php echo $bulk_upload_url; ?>" type="button" class="button media-button select-mode-toggle-button"><?php _e( 'Move files to the bucket', 'arvancloud-object-storage' ) ?></a>
+        </div>
+        <hr>
+        <?php
+    }
+
     if( ( ! $db_defined && ! $snippet_defined ) || ( isset( $_GET[ 'action' ] ) && $_GET[ 'action' ] == 'change-access-option' ) ) {
         if( isset( $_GET['error_message'] ) ) {
             echo '<div class="notice notice-error is-dismissible"><p>'. esc_html( $_GET['error_message'] ) .'</p></div>';

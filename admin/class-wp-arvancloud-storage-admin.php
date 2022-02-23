@@ -97,6 +97,7 @@ class Wp_Arvancloud_Storage_Admin {
 			'nonces'  => array(
 				'get_attachment_provider_details' => wp_create_nonce( 'get-attachment-s3-details' ),
 			),
+			'ajax_url'  => admin_url( 'admin-ajax.php' ),
 		) );
 
 	}
@@ -295,7 +296,7 @@ class Wp_Arvancloud_Storage_Admin {
 				$_SERVER['REQUEST_URI'] == '/wp-admin/async-upload.php' ||
 				strpos( $_SERVER['REQUEST_URI'], 'media' ) !== false ||
 				strpos( $_SERVER['REQUEST_URI'], 'action=copy' ) !== false ||
-				$_POST['html-upload'] == 'Upload'
+				isset( $_POST['html-upload'] ) && $_POST['html-upload'] == 'Upload'
 			) {
 				require( ACS_PLUGIN_ROOT . 'includes/wp-arvancloud-storage-s3client.php' );
 				$file 	   	  = is_numeric( $post_id ) ? get_attached_file( $post_id ) : $post_id;
@@ -378,14 +379,14 @@ class Wp_Arvancloud_Storage_Admin {
 
 					$this->upload_media_to_storage( $file, true );
 
-					if( !$this->acs_settings['keep-local-files'] ) {
+					if( isset($this->acs_settings['keep-local-files']) && !$this->acs_settings['keep-local-files'] ) {
 						unlink( $file );
 					}
 				}
 			}
 		}
 
-		if( !$this->acs_settings['keep-local-files'] ) {
+		if( isset($this->acs_settings['keep-local-files']) && !$this->acs_settings['keep-local-files'] ) {
 			unlink( $upload_dir['basedir'] . '/' . $args['file'] );
 		}
 
@@ -1074,4 +1075,109 @@ class Wp_Arvancloud_Storage_Admin {
 		
     }
 
+	/**
+	 * Upload all images
+	 *
+	 * @param [type] $do_action
+	 * @return true
+	 */
+	public function handle_bulk_upload() {
+
+
+		// Get images IDs
+		$object_ids = get_posts( 
+			array(
+				'post_type'      => 'attachment', 
+				'posts_per_page' => -1,
+				'fields'         => 'ids',
+			) 
+		);
+
+		// Reset option for ajax data (progress bar)
+		update_option('arvan-cloud-storage-bulk-upload-percent', 0);
+		update_option('arvan-cloud-storage-bulk-upload-new', 0);
+		update_option('arvan-cloud-storage-bulk-upload-error', 0);
+
+		$percentage_option = 0;
+		$percentage = 0;
+		$uploaded_count = 0;
+		$error_count = 0;
+
+		$one_percent = 100 / count($object_ids);
+
+		foreach ( $object_ids as $post_id ) {
+
+			$storage_file_url = get_post_meta( $post_id, 'acs_storage_file_url' );
+
+			
+			if (empty($storage_file_url)) {
+				sleep( 0.3 ); // Delay execution
+
+				$_POST['action'] = 'upload-attachment';
+
+				// if the file doesn't exist locally we can't copy
+				if ( ! file_exists( get_attached_file($post_id) ) ) {
+					continue;
+				}
+
+				// Upload Attachment
+				if( wp_attachment_is_image( $post_id ) ) {
+					$file = wp_get_attachment_metadata($post_id);
+					$result = $this->upload_image_to_storage( $file );
+				} else {
+					$result = $this->upload_media_to_storage( $post_id );
+				}
+
+				if ( is_wp_error( $result ) ) {
+					$error_count++;
+				}
+
+				$uploaded_count++;
+				update_option('arvan-cloud-storage-bulk-upload-new', $uploaded_count);
+				update_option('arvan-cloud-storage-bulk-upload-error', $error_count);
+			}
+
+			$percentage += $one_percent;
+			
+			if ( $percentage > 90 || $percentage - $percentage_option > 10 ) {
+				$percentage_option = ceil($percentage);
+				update_option('arvan-cloud-storage-bulk-upload-percent', $percentage_option);
+			}
+
+			if ( $percentage_option > 100 ) {
+				$percentage_option = 100;
+			}
+		}
+
+		wp_send_json_success( $uploaded_count, 200 );
+		wp_die();
+
+	}
+
+
+	public function ajax_bulk_upload_res() {
+		// checking nonce
+		// if ( ! check_ajax_referer( 'ar-cdn-options-nonce', 'security', false ) ) {
+
+		// 	wp_send_json_error( __('Invalid security token sent.', 'wp-arvancloud-cdn' ), 403 );
+		// 	wp_die();
+
+		// }
+		// update_option('arvan-cloud-storage-bulk-upload-percent', 0);
+
+		$percentage_option = get_option('arvan-cloud-storage-bulk-upload-percent', false);
+		$new = get_option('arvan-cloud-storage-bulk-upload-new', false);
+		$error = get_option('arvan-cloud-storage-bulk-upload-error', false);
+
+
+		$data = [
+			'percentage_option' => $percentage_option,
+			'new' => $new,
+			'error' => $error
+		];
+
+
+		wp_send_json_success( $data, 200 );
+		wp_die();
+	}
 }
