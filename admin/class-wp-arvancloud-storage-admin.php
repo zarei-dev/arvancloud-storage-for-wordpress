@@ -627,6 +627,8 @@ class Wp_Arvancloud_Storage_Admin {
 
 		if( $this->bucket_name ) {
 			$bulk_actions['bulk_acs_copy'] = __( 'Copy to Bucket', 'arvancloud-object-storage' );
+			$bulk_actions['bulk_acs_acl_public'] = __( 'Make Public in Bucket', 'arvancloud-object-storage' );
+			$bulk_actions['bulk_acs_acl_private'] = __( 'Make Private in Bucket', 'arvancloud-object-storage' );
 		}
 
 		return $bulk_actions;
@@ -661,6 +663,50 @@ class Wp_Arvancloud_Storage_Admin {
 			$redirect = add_query_arg(
 				'bulk_acs_copy_done', // just a parameter for URL ( we will use $_GET['acs_copy_done'] )
 				count( $object_ids ), // parameter value - how much posts have been affected
+			$redirect );
+		}
+
+		if ( $do_action == 'bulk_acs_acl_public' || $do_action == 'bulk_acs_acl_private' ) {
+			global $post;
+			$acl = 'public-read';
+			if ( $do_action == 'bulk_acs_acl_private' ) {
+				$acl = 'private';
+			}
+			$sleep_time = 1;
+			$changed_count = 0;
+			
+
+			foreach ( $object_ids as $post_id ) {
+				sleep( $sleep_time ); // Delay execution
+
+				if ( !$this->is_attachment_served_by_storage( $post_id, true ) ) {
+					continue;
+				}
+				
+				$file = wp_get_attachment_metadata($post_id);
+				$file_key = basename(get_the_guid($post_id));
+	
+				// Check if image has extra sizes
+				if( wp_attachment_is_image( $post_id ) && array_key_exists( "sizes", $file ) ) {
+					foreach ( $file['sizes'] as $sub_size ) {
+						if ( $sub_size['file'] != "" ) {
+							if ($this->change_object_acl( $sub_size['file'], $acl )) {
+								$changed_count++;
+							}
+						}
+					}
+				}
+				if ($this->change_object_acl( $sub_size['file'], $acl )) {
+					$changed_count++;
+				}
+			}
+	
+			// add query args to URL because we will show notices later
+			$done_key = $do_action == 'bulk_acs_acl_public' ? 'bulk_acs_acl_public_done' : 'bulk_acs_acl_private_done';
+			$redirect = add_query_arg([
+				$done_key => count( $object_ids ),
+				'objects_changed' => $changed_count
+			],
 			$redirect );
 		}
 
@@ -739,7 +785,7 @@ class Wp_Arvancloud_Storage_Admin {
 			$class .= ' local-warning';
 		}
 
-		$actions[ 'acs_' . $action ] = '<a href="' . $url . '" class="' . $class . '" title="' . esc_attr( $text ) . '">' . esc_html( $text ) . '</a>';
+		$actions[ 'acs_' . $action ] = '<a href="' . $url . '" class="ar-copy ' . $class . '" title="' . esc_attr( $text ) . '">' . esc_html( $text ) . '</a>';
 
 	}
 
@@ -964,6 +1010,13 @@ class Wp_Arvancloud_Storage_Admin {
 			
 			echo $this->get_media_action_result_message( $action, $count, $error_count );
 		}
+
+		if (( isset( $_GET['bulk_acs_acl_public_done'] ) || isset( $_GET['bulk_acs_acl_private_done'] ) ) && isset( $_GET['objects_changed'] ) ) {
+			$changed_count = absint( $_GET['objects_changed'] ); // input var okay
+			echo '<div class="notice notice-success is-dismissible">
+					<p>' . $changed_count . esc_html__( " Object acl has been successfully changed.", 'arvancloud-object-storage' ) .'</p>
+				</div>';
+		}
 	}
 
 	/**
@@ -1129,7 +1182,6 @@ class Wp_Arvancloud_Storage_Admin {
 	 */
 	public function add_edit_attachment_metabox( $post ) {
 
-		if( !$this->is_attachment_served_by_storage( $_GET['post'], true ) ) {
 			add_meta_box(
 				'arvancloud-storage-metabox',
 				__( 'ArvanCloud Storage', 'arvancloud-object-storage' ),
@@ -1138,7 +1190,7 @@ class Wp_Arvancloud_Storage_Admin {
 				'side',
 				'default'
 			);
-		}
+
 
     }
 
@@ -1150,14 +1202,143 @@ class Wp_Arvancloud_Storage_Admin {
 	public function render_edit_attachment_metabox() {
 
 		global $post;
-	
-        $actions = $this->add_media_row_actions( array(), $post );
 
-		foreach( $actions as $action ) {
-			echo wp_kses_post( $action );
+		$is_attachment_served_by_storage = $this->is_attachment_served_by_storage( $_GET['post'], true );
+
+		if( !$is_attachment_served_by_storage ) {
+	
+			$actions = $this->add_media_row_actions( array(), $post );
+			foreach( $actions as $action ) {
+				echo wp_kses_post( $action );
+			}
+
+			return;
 		}
-		
+
+
+		$client = $this->s3_client_creator();
+		$bucket_selected = get_bucket_name();
+		$file_key	     = basename($post->guid);
+
+		try {
+			$result = $client->getObjectAcl([
+				'Bucket' => $bucket_selected,
+				'Key' => $file_key,
+			]);
+
+		} catch (Aws\Exception\AwsException $e) {
+			return;
+		}
+
+		$acl = 'private';
+
+		foreach($result['Grants'] as $Grants) {
+			if( $Grants['Grantee']['Type'] == 'Group' && $Grants['Grantee']['URI'] == 'http://acs.amazonaws.com/groups/global/AllUsers' ) {
+				$acl = 'public-read';
+			}
+		}
+
+		$nonce = wp_create_nonce( 'object-storage-nonce-acl' );
+		$url = add_query_arg( array(
+			'action' => 'edit',
+			'change_acl' => 'true',
+			'nonce' => $nonce,
+			'acl' => $acl == 'public-read' ? 'private' : 'public-read',
+			'post' => $post->ID,
+		), admin_url( 'post.php' ) );
+		$string = $acl == 'private' ? __( 'Make Public in Bucket', 'arvancloud-object-storage' ) : __( 'Make Private in Bucket', 'arvancloud-object-storage' );
+
+		echo '<a type="button" href="' . $url . '" class="button" title="' . '' . '">' . $string . '</a>';
+
+		return;
     }
+
+	public function maybe_change_acl() {
+		global $post;
+		$post_id = $post->ID;
+
+		if ( isset ($_GET['change_acl']) && $_GET['change_acl'] == 'true' ) {
+			// wp verify nonce
+			if ( ! wp_verify_nonce( $_GET['nonce'], 'object-storage-nonce-acl' ) ) {
+				return;
+			}
+
+			$acl = sanitize_text_field( $_GET['acl'] );
+			if ( !in_array( $acl, array( 'private', 'public-read' ) ) ) {
+				return;
+			}
+
+			$file = wp_get_attachment_metadata($post_id);
+			$file_key = basename($post->guid);
+
+			// Check if image has extra sizes
+			if( wp_attachment_is_image( $post_id ) && array_key_exists( "sizes", $file ) ) {
+				foreach ( $file['sizes'] as $sub_size ) {
+					if ( $sub_size['file'] != "" ) {
+						$this->change_object_acl( $sub_size['file'], $acl );
+					}
+				}
+			}
+			$this->change_object_acl( $file_key, $acl );
+
+
+			add_action( 'admin_notices', function () {
+				echo '<div class="notice notice-success is-dismissible">
+						<p>'. esc_html__( "Object's acl has been successfully changed.", 'arvancloud-object-storage' ) .'</p>
+					</div>';
+			} );
+		}
+
+		return;
+
+	}
+
+	private function change_object_acl( $file_key, $acl ) {
+
+		$client = $this->s3_client_creator();
+
+		$bucket_selected = get_bucket_name();
+
+		
+		try {
+			$result = $client->putObjectAcl([
+				'ACL' => $acl, // or private
+				'Bucket' => $bucket_selected,
+				'Key' => $file_key,
+			]);
+		} catch (Aws\Exception\AwsException $e) {
+			add_action( 'admin_notices', function () {
+				echo '<div class="notice notice-error is-dismissible">
+						<p>'. esc_html__( "There is a problem.", 'arvancloud-object-storage' ) .'</p>
+					</div>';
+			} );
+			return false;
+		}
+
+		return $result;
+	}
+
+	private function s3_client_creator() {
+		require_once( ACS_PLUGIN_ROOT . 'includes/wp-arvancloud-storage-s3client.php' );
+
+		$credentials = get_storage_settings();
+
+		$client = new \Aws\S3\S3Client([
+			'region'   => '',
+			'version'  => '2006-03-01',
+			'endpoint' => $credentials['endpoint-url'],
+			'use_aws_shared_config_files' => false,
+			'credentials' => [
+				'key'     => $credentials['access-key'],
+				'secret'  => $credentials['secret-key']
+			],
+			// Set the S3 class to use objects. arvanstorage.com/bucket
+			// instead of bucket.objects. arvanstorage.com
+			'use_path_style_endpoint' => true
+		]);
+
+		return $client;
+	}
 
 	public function get_site_icon_url( $url, $size, $blog_id ) {
 		$site_icon_id = get_option( 'site_icon' );
