@@ -110,6 +110,53 @@
 			})
 			update_ar_bulk_upload();
 		})
+
+		$('.health-check-accordion-trigger').on('click', function() {
+			var id = $(this).attr('aria-controls')
+			$('#' + id).toggle()
+		})
+
+		var i = new ClipboardJS(".site-health-copy-buttons .copy-button");
+		var a, l = wp.i18n.__;
+		i.on("success", function (e) {
+			var t = $(e.trigger),
+				s = $(".success", t.closest("div"));
+			e.clearSelection(), t.trigger("focus"), clearTimeout(a), s.removeClass("hidden"), a = setTimeout(function () {
+				s.addClass("hidden"), i.clipboardAction.fakeElem && i.clipboardAction.removeFake && i.clipboardAction.removeFake()
+			}, 3e3), wp.a11y.speak(l("Site information has been copied to your clipboard."))
+		})
+
+
 	});
+
 	
 })( jQuery );
+
+function copyToClipboard( selector ) {
+	var text = jQuery(selector).text()
+	copyTextToClipboard(text)
+}
+
+function copyTextToClipboard(textToCopy) {
+    // navigator clipboard api needs a secure context (https)
+    if (navigator.clipboard && window.isSecureContext) {
+        // navigator clipboard api method'
+        return navigator.clipboard.writeText(textToCopy);
+    } else {
+        // text area method
+        let textArea = document.createElement("textarea");
+        textArea.value = textToCopy;
+        // make the textarea out of viewport
+        textArea.style.position = "fixed";
+        textArea.style.left = "-999999px";
+        textArea.style.top = "-999999px";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        return new Promise((res, rej) => {
+            // here the magic happens
+            document.execCommand('copy') ? res() : rej();
+            textArea.remove();
+        });
+    }
+}
