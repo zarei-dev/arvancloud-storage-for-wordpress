@@ -3,8 +3,17 @@
     if (isset( $_GET['system-info'] ) && $_GET['system-info'] == true) {
         require_once( ACS_PLUGIN_ROOT . 'admin/partials/partial-system-info.php' );
         return;
-    } else {
+    } else if ( isset( $_GET['bulk_upload'] ) && $_GET['bulk_upload'] == true ) {
+        ?>
 
+        <div class="ar-heading">
+            <H1><?php _e( 'Move files to the bucket', 'arvancloud-object-storage' ) ?></H1>
+        </div>
+        <hr>
+        <?php
+        require_once( ACS_PLUGIN_ROOT . 'admin/partials/wp-arvancloud-move-files.php' );
+        return;
+    } else {
 
         $config_type     = false;
         $snippet_defined = false;
@@ -37,9 +46,15 @@
             </div>';
         }
 
+        $bulk_upload_url = esc_url( add_query_arg(array(
+            'page' => ACS_SLUG,
+            'bulk_upload' => true,
+        ), admin_url()) );
+
         ?>
-            <div class="ar-heading without-btn">
+            <div class="ar-heading">
                 <h1><?php echo __( 'Settings', 'arvancloud-object-storage' ) ?></h1>
+                <a href="<?php echo $bulk_upload_url; ?>" type="button" class="button media-button select-mode-toggle-button"><?php _e( 'Move files to the bucket', 'arvancloud-object-storage' ) ?></a>
             </div>
             <hr>
         <?php
