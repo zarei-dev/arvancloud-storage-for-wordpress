@@ -73,6 +73,9 @@
 
 		
 		function update_ar_bulk_upload() {
+			$('#bulk_upload_progress .progress').show()
+			$('#bulk_upload_text').show()
+			$('#ar_obs_bulk_local_to_bucket').hide()
 			$.ajax({
 				url: acs_media.ajax_url,
 				data: {
@@ -96,7 +99,8 @@
 			})
 		}
 
-		if ( $('#bulk_upload_progress').length > 0) {
+		$('#ar_obs_bulk_local_to_bucket').on('click', function(e) {
+			e.preventDefault();
 			$.ajax({
 				url: acs_media.ajax_url,
 				data: {
@@ -105,7 +109,7 @@
 				}
 			})
 			update_ar_bulk_upload();
-		}
+		})
 	});
 	
 })( jQuery );

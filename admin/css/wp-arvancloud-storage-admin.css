@@ -255,6 +255,10 @@ a {
     padding: 50px;
 }
 
+#bulk_upload_progress .progress {
+	display: none;
+}
+
 #bulk_upload_progress .original {
 	height: unset;
 	font-size: 26px;
@@ -263,4 +267,5 @@ a {
 
 #bulk_upload_text {
 	margin-top: 20px;
+	display: none;
 }

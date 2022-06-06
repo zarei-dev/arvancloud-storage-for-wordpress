@@ -1082,7 +1082,7 @@ class Wp_Arvancloud_Storage_Admin {
 	 * @return true
 	 */
 	public function handle_bulk_upload() {
-
+		ini_set('max_execution_time', '0');
 
 		// Get images IDs
 		$object_ids = get_posts( 
@@ -1103,10 +1103,10 @@ class Wp_Arvancloud_Storage_Admin {
 		$uploaded_count = 0;
 		$error_count = 0;
 
-		$one_percent = 100 / count($object_ids);
+		$one_percent = 0;
 
 		foreach ( $object_ids as $post_id ) {
-
+			$one_percent++;
 			$storage_file_url = get_post_meta( $post_id, 'acs_storage_file_url' );
 
 			
@@ -1121,7 +1121,8 @@ class Wp_Arvancloud_Storage_Admin {
 				}
 
 				// Upload Attachment
-				if( wp_attachment_is_image( $post_id ) ) {
+				$type = get_post_mime_type($post_id);
+				if( wp_attachment_is_image( $post_id ) && $type != 'image/svg+xml' ) {
 					$file = wp_get_attachment_metadata($post_id);
 					$result = $this->upload_image_to_storage( $file );
 				} else {
@@ -1137,16 +1138,8 @@ class Wp_Arvancloud_Storage_Admin {
 				update_option('arvan-cloud-storage-bulk-upload-error', $error_count);
 			}
 
-			$percentage += $one_percent;
-			
-			if ( $percentage > 90 || $percentage - $percentage_option > 10 ) {
-				$percentage_option = ceil($percentage);
-				update_option('arvan-cloud-storage-bulk-upload-percent', $percentage_option);
-			}
-
-			if ( $percentage_option > 100 ) {
-				$percentage_option = 100;
-			}
+			$percentage = $one_percent / count($object_ids) * 100;
+			update_option('arvan-cloud-storage-bulk-upload-percent', ceil($percentage));
 		}
 
 		wp_send_json_success( $uploaded_count, 200 );
