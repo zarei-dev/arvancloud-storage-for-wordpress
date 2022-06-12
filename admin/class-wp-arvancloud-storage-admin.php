@@ -696,7 +696,7 @@ class Wp_Arvancloud_Storage_Admin {
 						}
 					}
 				}
-				if ($this->change_object_acl( $sub_size['file'], $acl )) {
+				if ($this->change_object_acl( $file_key, $acl )) {
 					$changed_count++;
 				}
 			}
