@@ -1012,9 +1012,8 @@ class Wp_Arvancloud_Storage_Admin {
 		}
 
 		if (( isset( $_GET['bulk_acs_acl_public_done'] ) || isset( $_GET['bulk_acs_acl_private_done'] ) ) && isset( $_GET['objects_changed'] ) ) {
-			$changed_count = absint( $_GET['objects_changed'] ); // input var okay
 			echo '<div class="notice notice-success is-dismissible">
-					<p>' . $changed_count . esc_html__( " Object acl has been successfully changed.", 'arvancloud-object-storage' ) .'</p>
+					<p>' . esc_html__( " Object acl has been successfully changed.", 'arvancloud-object-storage' ) .'</p>
 				</div>';
 		}
 	}
