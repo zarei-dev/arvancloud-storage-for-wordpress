@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "491027dce1eb20736a80dea55d319447",
+    "content-hash": "e8c0ea4f9c5e695b44d167ff17011703",
     "packages": [
         {
             "name": "aws/aws-crt-php",
@@ -469,6 +469,54 @@
                 }
             ],
             "time": "2022-06-09T08:26:02+00:00"
+        },
+        {
+            "name": "khorshid/wp-encrypt",
+            "version": "v1.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/KhorshidLab/WP-Encrypt.git",
+                "reference": "4814085da77f6c8e8da2d045a8c942b4ac90a862"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/KhorshidLab/WP-Encrypt/zipball/4814085da77f6c8e8da2d045a8c942b4ac90a862",
+                "reference": "4814085da77f6c8e8da2d045a8c942b4ac90a862",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^7.0 || ^8.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "WP_Encryption\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Khorshid",
+                    "email": "info@khorshidlab.com",
+                    "homepage": "https://khorshidlab.com/"
+                }
+            ],
+            "description": "Encrypts and decrypts data using the WordPress SALT and OpenSSL",
+            "keywords": [
+                "decrypt",
+                "decryption",
+                "encrypt",
+                "encryption",
+                "wp-encrypt"
+            ],
+            "support": {
+                "issues": "https://github.com/KhorshidLab/WP-Encrypt/issues",
+                "source": "https://github.com/KhorshidLab/WP-Encrypt/tree/v1.0.0"
+            },
+            "time": "2022-05-24T12:31:48+00:00"
         },
         {
             "name": "mtdowling/jmespath.php",
