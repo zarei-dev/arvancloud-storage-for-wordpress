@@ -625,10 +625,68 @@ class Admin {
 		if( !empty( $storage_file_url ) ) {
 			$file_name = basename( $url );
 			$url 	   = esc_url( $storage_file_url.$file_name );
+
+			// Show private files in admin
+			if ( is_admin() && get_post_meta( $post_id, 'acs_acl', true ) == 'private' ) {
+
+				return $this->get_object_private_url( $post_id, $file_name, 86400);
+			}
 		}
+
 		
 		return $url;
 		
+	}
+
+	protected function generate_private_url( $file_key, $expiry ) {
+		$client = $this->s3_client_creator();
+
+		$bucket_selected = $this->bucket_name;
+
+		// get private object url s3
+
+		
+		try {
+			$result = $client->getCommand('GetObject', [
+				'Bucket' => $bucket_selected,
+				'Key' => $file_key,
+			]);
+			
+			$request = $client->createPresignedRequest($result, '+1 day');
+
+			$presignedUrl = (string)$request->getUri();
+
+		} catch (AwsException $e) {
+			add_action( 'admin_notices', function () {
+				echo '<div class="notice notice-error is-dismissible">
+						<p>'. esc_html__( "There is a problem.", 'arvancloud-object-storage' ) .'</p>
+					</div>';
+			} );
+			return false;
+		}
+
+		return $presignedUrl;
+	}
+
+	protected function get_object_private_url( $post_id, $file_key, $expiry ) {
+
+		$last_update = get_post_meta( $post_id, 'acs_presigned_url_last_update', true );
+
+		if ( !empty($last_update) && strtotime($last_update) > strtotime("-1 day") ) {
+			return get_post_meta( $post_id, 'acs_presigned_url', true );
+		}
+
+		$private_url = $this->generate_private_url( $file_key, $expiry );
+
+		if ( !empty( $private_url ) ) {
+			update_post_meta( $post_id, 'acs_presigned_url', $private_url );
+			update_post_meta( $post_id, 'acs_presigned_url_last_update', date( 'Y-m-d H:i:s' ) );
+
+			return $private_url;
+		}
+
+
+		return false;
 	}
 
 	/**
@@ -712,6 +770,8 @@ class Admin {
 				}
 				if ($this->change_object_acl( $file_key, $acl )) {
 					$changed_count++;
+					// Update post meta
+					update_post_meta( $post_id, 'acs_acl', $acl );
 				}
 			}
 	
@@ -1392,6 +1452,9 @@ class Admin {
 				}
 			}
 			$this->change_object_acl( $file_key, $acl );
+
+			// Update post meta
+			update_post_meta( $post_id, 'acs_acl', $acl );
 
 
 			add_action( 'admin_notices', function () {
