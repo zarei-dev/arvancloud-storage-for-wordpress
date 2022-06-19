@@ -381,7 +381,7 @@ class Admin {
 
 		if( $force_upload || ( is_numeric( $post_id ) && !wp_attachment_is_image( $post_id ) ) ) {
 			if(  
-				( isset( $_POST['action'] ) && $_POST['action'] == 'upload-attachment' || $_POST['action'] == 'image-editor' ) || 
+				( isset( $_POST['action'] ) && ($_POST['action'] == 'upload-attachment' || $_POST['action'] == 'image-editor') ) || 
 				$_SERVER['REQUEST_URI'] == '/wp-admin/async-upload.php' ||
 				strpos( $_SERVER['REQUEST_URI'], 'media' ) !== false ||
 				strpos( $_SERVER['REQUEST_URI'], 'action=copy' ) !== false ||
