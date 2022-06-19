@@ -4,6 +4,7 @@ use WP_Arvan\OBS\Helper;
 use Aws\Exception\AwsException;
 use Aws\S3\MultipartUploader;
 use Aws\Exception\MultipartUploadException;
+use WP_Encryption\Encryption;
 
 
 /**
@@ -203,7 +204,7 @@ class Admin {
 				if( !wp_is_uuid( $options[ 'access-key' ] ) ) {
 					unset( $options[ 'access-key' ] );
 
-					update_option( 'arvan-cloud-storage-settings', Helper::acs_encrypt( json_encode( $options ) ) );
+					update_option( 'arvan-cloud-storage-settings', (new Encryption)->encrypt( json_encode( $options ) ) );
 
 					add_action( 'admin_notices', function () {
 						echo '<div class="notice notice-error is-dismissible">
@@ -227,7 +228,7 @@ class Admin {
 				}
 			}
 
-			$save_settings = update_option( 'arvan-cloud-storage-settings', Helper::acs_encrypt( json_encode( $options ) ) );
+			$save_settings = update_option( 'arvan-cloud-storage-settings', (new Encryption)->encrypt( json_encode( $options ) ) );
 
 			if( $save_settings ) {
 				delete_option( 'arvan-cloud-storage-bucket-name' );
