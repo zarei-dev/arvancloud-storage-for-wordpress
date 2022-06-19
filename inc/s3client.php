@@ -1,5 +1,5 @@
 <?php
-
+namespace WP_Arvan\OBS;
 /**
  * The file that loads the AWS S3 client for storage
  *
@@ -15,8 +15,9 @@ use Aws\S3\S3Client;
 use Aws\Exception\AwsException;
 use Aws\S3\MultipartUploader;
 use Aws\Exception\MultipartUploadException;
+use WP_Arvan\OBS\Helper;
 
-$credentials = get_storage_settings();
+$credentials = Helper::get_storage_settings();
 
 if( $credentials ) {
     

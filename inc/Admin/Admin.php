@@ -1,4 +1,11 @@
 <?php
+namespace WP_Arvan\OBS\Admin;
+use WP_Arvan\OBS\Helper;
+use Aws\Exception\AwsException;
+use Aws\S3\MultipartUploader;
+use Aws\Exception\MultipartUploadException;
+
+
 /**
  * The admin-specific functionality of the plugin.
  *
@@ -9,7 +16,7 @@
  * @subpackage Wp_Arvancloud_Storage/admin
  * @author     Khorshid <info@khorshidlab.com>
  */
-class Wp_Arvancloud_Storage_Admin {
+class Admin {
 
 	/**
 	 * The ID of this plugin.
@@ -41,8 +48,8 @@ class Wp_Arvancloud_Storage_Admin {
 		$this->plugin_name 		= $plugin_name;
 		$this->version 			= $version;
 		$this->acs_settings 	= get_option( 'acs_settings', true );
-		$this->bucket_name  	= get_bucket_name();
-		$this->storage_settings	= get_storage_settings();
+		$this->bucket_name  	= Helper::get_bucket_name();
+		$this->storage_settings	= Helper::get_storage_settings();
 
 	}
 
@@ -65,7 +72,7 @@ class Wp_Arvancloud_Storage_Admin {
 		 * class.
 		 */
 
-		wp_enqueue_style( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'css/wp-arvancloud-storage-admin.css', array(), $this->version, 'all' );
+		wp_enqueue_style( $this->plugin_name, ACS_PLUGIN_ROOT_URL . 'assets/css/admin.css', array(), $this->version, 'all' );
 
 	}
 
@@ -90,7 +97,7 @@ class Wp_Arvancloud_Storage_Admin {
 		 * class.
 		 */
 
-		wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/wp-arvancloud-storage-admin.js', array( 'jquery' ), $this->version, false );
+		wp_enqueue_script( $this->plugin_name, ACS_PLUGIN_ROOT_URL . 'assets/js/admin.js', array( 'jquery' ), $this->version, false );
 
 		wp_localize_script( $this->plugin_name, 'acs_media', array(
 			'strings' => $this->get_media_action_strings(),
@@ -119,7 +126,7 @@ class Wp_Arvancloud_Storage_Admin {
 			'manage_options', 
 			ACS_SLUG, 
 			__CLASS__ . '::settings_page',
-            ACS_PLUGIN_ROOT_URL . 'admin/img/arvancloud-logo.svg'
+            ACS_PLUGIN_ROOT_URL . 'assets/img/arvancloud-logo.svg'
         );
 
 		add_submenu_page(
@@ -149,7 +156,7 @@ class Wp_Arvancloud_Storage_Admin {
 	 */
 	public static function settings_page() {
 
-		require_once( 'partials/wp-arvancloud-storage-settings-display.php' );
+		Partials::settings();
 
     }
 
@@ -169,7 +176,7 @@ class Wp_Arvancloud_Storage_Admin {
 	 */
 	public static function about_us_page() {
 
-		require_once( 'partials/wp-arvancloud-storage-about-us-display.php' );
+		Partials::about_us();
 
     }
 
@@ -196,7 +203,7 @@ class Wp_Arvancloud_Storage_Admin {
 				if( !wp_is_uuid( $options[ 'access-key' ] ) ) {
 					unset( $options[ 'access-key' ] );
 
-					update_option( 'arvan-cloud-storage-settings', acs_encrypt( json_encode( $options ) ) );
+					update_option( 'arvan-cloud-storage-settings', Helper::acs_encrypt( json_encode( $options ) ) );
 
 					add_action( 'admin_notices', function () {
 						echo '<div class="notice notice-error is-dismissible">
@@ -220,7 +227,7 @@ class Wp_Arvancloud_Storage_Admin {
 				}
 			}
 
-			$save_settings = update_option( 'arvan-cloud-storage-settings', acs_encrypt( json_encode( $options ) ) );
+			$save_settings = update_option( 'arvan-cloud-storage-settings', Helper::acs_encrypt( json_encode( $options ) ) );
 
 			if( $save_settings ) {
 				delete_option( 'arvan-cloud-storage-bucket-name' );
@@ -288,7 +295,7 @@ class Wp_Arvancloud_Storage_Admin {
 				exit();
 			}
 
-			require( ACS_PLUGIN_ROOT . 'includes/wp-arvancloud-storage-s3client.php' );
+			require( ACS_PLUGIN_ROOT . 'inc/s3client.php' );
 			
 			try {
 				$result = $client->createBucket([
@@ -311,7 +318,7 @@ class Wp_Arvancloud_Storage_Admin {
 					)
 				);
 				exit();
-			} catch (Aws\Exception\AwsException $e) {
+			} catch (AwsException $e) {
 				$notice = $e->getStatusCode() == 409 ? 'bucket-exists' : 'bucket-create-failed';
 
 				wp_redirect(
@@ -382,7 +389,7 @@ class Wp_Arvancloud_Storage_Admin {
 				( isset($_POST['context']) && $_POST['context'] == 'site-icon') ||
 				( isset($_POST['context']) && $_POST['context'] == 'custom_logo')
 			) {
-				require( ACS_PLUGIN_ROOT . 'includes/wp-arvancloud-storage-s3client.php' );
+				require( ACS_PLUGIN_ROOT . 'inc/s3client.php' );
 				$file 	   	  = is_numeric( $post_id ) ? get_attached_file( $post_id ) : $post_id;
 				$file_size 	  = number_format( filesize( $file ) / 1048576, 2 ); // File size in MB
 	
@@ -401,7 +408,7 @@ class Wp_Arvancloud_Storage_Admin {
 									<p>'. esc_html__( "Upload complete:" . $result['ObjectURL'], 'arvancloud-object-storage' ) .'</p>
 								</div>';
 						} );
-					} catch ( Exception $e ) {
+					} catch ( MultipartUploadException $e ) {
 						add_action( 'admin_notices', function () use( $e ) {
 							echo '<div class="notice notice-error is-dismissible">
 									<p>'. esc_html( $e->getMessage() ) .'</p>
@@ -416,7 +423,7 @@ class Wp_Arvancloud_Storage_Admin {
 							'SourceFile' => $file,
 							'ACL' 		 => 'public-read', // or private
 						]);
-					} catch ( Exception $e ) {
+					} catch ( MultipartUploadException $e ) {
 						add_action( 'admin_notices', function () use( $e ) {
 							echo '<div class="notice notice-error is-dismissible">
 									<p>'. esc_html( $e->getMessage() ) .'</p>
@@ -426,7 +433,7 @@ class Wp_Arvancloud_Storage_Admin {
 				}
 	
 				if( is_numeric( $post_id ) ) {
-					update_post_meta( $post_id, 'acs_storage_file_url', get_storage_url() );
+					update_post_meta( $post_id, 'acs_storage_file_url', Helper::get_storage_url() );
 	
 					if( !$this->acs_settings['keep-local-files'] && !wp_attachment_is_image( $post_id ) ) {
 						unlink( $file );
@@ -455,7 +462,7 @@ class Wp_Arvancloud_Storage_Admin {
 
 		$this->upload_media_to_storage( $upload_dir['basedir'] . '/' . $args['file'], true );
 
-		update_post_meta( $post_id, 'acs_storage_file_url', get_storage_url() );
+		update_post_meta( $post_id, 'acs_storage_file_url', Helper::get_storage_url() );
 
 		// Check if image has extra sizes
 		if( array_key_exists( "sizes", $args ) ) {
@@ -493,7 +500,7 @@ class Wp_Arvancloud_Storage_Admin {
 		}
 
 		if( ( isset( $_POST['action'] ) && $_POST['action'] == 'delete-post' || $_POST['action'] == 'image-editor' ) && $this->is_attachment_served_by_storage( $id ) ) {
-			require( ACS_PLUGIN_ROOT . 'includes/wp-arvancloud-storage-s3client.php' );
+			require( ACS_PLUGIN_ROOT . 'inc/s3client.php' );
 
 			if ( wp_attachment_is_image( $id ) ) {
 				$args = wp_get_attachment_metadata( $id );
@@ -546,7 +553,7 @@ class Wp_Arvancloud_Storage_Admin {
 				$cdn = get_post_meta( $attachment_id, 'acs_storage_file_url', true );
 				
 				if ( !empty( $cdn ) ) {
-					$source['url'] = str_replace( trailingslashit( $uploads ), trailingslashit( get_storage_url() ), $source['url'] );
+					$source['url'] = str_replace( trailingslashit( $uploads ), trailingslashit( Helper::get_storage_url() ), $source['url'] );
 				}
 			}
 
@@ -890,7 +897,7 @@ class Wp_Arvancloud_Storage_Admin {
 				return;
 			}
 
-			$ids = acs_recursive_sanitize( $_REQUEST['media'] ); // input var okay
+			$ids = Helper::acs_recursive_sanitize( $_REQUEST['media'] ); // input var okay
 		}
 
 		if ( ! in_array( $action, $available_actions ) ) {

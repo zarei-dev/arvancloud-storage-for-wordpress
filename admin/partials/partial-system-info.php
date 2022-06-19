@@ -1,9 +1,10 @@
-<?php 
+<?php
+use  WP_Arvan\OBS\System_Info;
 // If this file is called directly, abort.
 if ( ! defined( 'WPINC' ) ) {
 	die;
 }
-$system_info = new ArvanCloud_Sytem_Info();
+$system_info = new System_Info();
 
         
 ?>
@@ -25,5 +26,5 @@ $system_info = new ArvanCloud_Sytem_Info();
      ?>  
 </div>
 <?php
-require_once( ACS_PLUGIN_ROOT . 'admin/partials/wp-arvancloud-storage-footer.php' );
+require_once( ACS_PLUGIN_ROOT . 'admin/partials/components/footer.php' );
 echo '</div>';

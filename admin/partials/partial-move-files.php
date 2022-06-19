@@ -26,5 +26,5 @@ $admin_setting = esc_url( add_query_arg(array(
 
 
 <?php
-require_once( ACS_PLUGIN_ROOT . 'admin/partials/wp-arvancloud-storage-footer.php' );
+require_once( ACS_PLUGIN_ROOT . 'admin/partials/components/footer.php' );
 ?>

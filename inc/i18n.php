@@ -1,5 +1,5 @@
 <?php
-
+namespace WP_Arvan\OBS;
 /**
  * Define the internationalization functionality.
  *
@@ -11,7 +11,7 @@
  * @subpackage Wp_Arvancloud_Storage/includes
  * @author     Khorshid <info@khorshidlab.com>
  */
-class Wp_Arvancloud_Storage_i18n {
+class i18n {
 
 	/**
 	 * Load the plugin text domain for translation.

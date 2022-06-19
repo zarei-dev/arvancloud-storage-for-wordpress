@@ -1,14 +1,15 @@
 <?php 
+use WP_Arvan\OBS\Helper;
 // If this file is called directly, abort.
 if ( ! defined( 'WPINC' ) ) {
 	die;
 }
 
-if( $acs_settings_option = get_storage_settings() ) {
+if( $acs_settings_option = Helper::get_storage_settings() ) {
     $config_type         = $acs_settings_option['config-type'];
     $snippet_defined     = defined( 'ARVANCLOUD_STORAGE_SETTINGS' );
     $db_defined          = $config_type == 'db' && ! empty( $acs_settings_option['access-key'] ) && ! empty( $acs_settings_option['secret-key'] ) && ! empty( $acs_settings_option['endpoint-url'] ) ? true : false;
-    $bucket_selected     = get_bucket_name();
+    $bucket_selected     = Helper::get_bucket_name();
     $acs_settings	     = get_option( 'acs_settings' );
 
 }
@@ -21,7 +22,7 @@ if( $acs_settings_option = get_storage_settings() ) {
     <ul class="acs-bucket-list">
         <?php
         try {
-            require_once ACS_PLUGIN_ROOT . 'includes/wp-arvancloud-storage-s3client.php';
+            require_once ACS_PLUGIN_ROOT . 'inc/s3client.php';
 
             $list_response = $client->listBuckets();
             $buckets       = $list_response[ 'Buckets' ];  

@@ -1,4 +1,5 @@
 <?php
+namespace WP_Arvan\OBS;
 /**
  * Register all actions and filters for the plugin.
  *
@@ -10,7 +11,7 @@
  * @subpackage Wp_Arvancloud_Storage/includes
  * @author     Khorshid <info@khorshidlab.com>
  */
-class Wp_Arvancloud_Storage_Loader {
+class Loader {
 
 	/**
 	 * The array of actions registered with WordPress.

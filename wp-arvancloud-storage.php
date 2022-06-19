@@ -1,5 +1,7 @@
 <?php
 
+use WP_Arvan\OBS\Storage;
+use WP_Arvan\OBS\Activator;
 /**
  * @link              khorshidlab.com
  * @since             1.0.0
@@ -32,12 +34,17 @@ define( 'ACS_PLUGIN_ABSOLUTE', __FILE__ );
 define( 'ACS_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 
 /**
+ * The core plugin class that is used to define internationalization,
+ * admin-specific hooks, and public-facing site hooks.
+ */
+require ACS_PLUGIN_ROOT . '/vendor/autoload.php';
+
+/**
  * The code that runs during plugin activation.
  * This action is documented in includes/class-wp-arvancloud-storage-activator.php
  */
 function activate_wp_arvancloud_storage() {
-	require_once plugin_dir_path( __FILE__ ) . 'includes/class-wp-arvancloud-storage-activator.php';
-	Wp_Arvancloud_Storage_Activator::activate();
+	Activator::activate();
 }
 
 /**
@@ -52,14 +59,6 @@ register_activation_hook( __FILE__, 'activate_wp_arvancloud_storage' );
 register_deactivation_hook( __FILE__, 'deactivate_wp_arvancloud_storage' );
 
 /**
- * The core plugin class that is used to define internationalization,
- * admin-specific hooks, and public-facing site hooks.
- */
-require plugin_dir_path( __FILE__ ) . 'includes/class-wp-arvancloud-storage.php';
-
-require plugin_dir_path( __FILE__ ) . 'includes/wp-arvancloud-storage-helper.php';
-
-/**
  * Begins execution of the plugin.
  *
  * Since everything within the plugin is registered via hooks,
@@ -70,7 +69,7 @@ require plugin_dir_path( __FILE__ ) . 'includes/wp-arvancloud-storage-helper.php
  */
 function run_wp_arvancloud_storage() {
 
-	$plugin = new Wp_Arvancloud_Storage();
+	$plugin = new Storage();
 	$plugin->run();
 
 }

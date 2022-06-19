@@ -1,19 +1,22 @@
-<?php 
+<?php
+use WP_Arvan\OBS\Helper;
+use WP_Arvan\OBS\Admin\Admin;
+
 // If this file is called directly, abort.
 if ( ! defined( 'WPINC' ) ) {
 	die;
 }
 
-if( $acs_settings_option = get_storage_settings() ) {
+if( $acs_settings_option = Helper::get_storage_settings() ) {
     $config_type         = $acs_settings_option['config-type'];
     $snippet_defined     = defined( 'ARVANCLOUD_STORAGE_SETTINGS' );
     $db_defined          = $config_type == 'db' && ! empty( $acs_settings_option['access-key'] ) && ! empty( $acs_settings_option['secret-key'] ) && ! empty( $acs_settings_option['endpoint-url'] ) ? true : false;
-    $bucket_selected     = get_bucket_name();
+    $bucket_selected     = Helper::get_bucket_name();
     $acs_settings	     = get_option( 'acs_settings' );
 
 }
 
-require( ACS_PLUGIN_ROOT . 'includes/wp-arvancloud-storage-s3client.php' );
+require( ACS_PLUGIN_ROOT . 'inc/s3client.php' );
 try {
     $result = $client->headBucket([
         'Bucket' => $bucket_selected,
@@ -23,14 +26,14 @@ try {
 }
 
 if ( $result ) {
-    $used = Wp_Arvancloud_Storage_Admin::formatBytes($result['@metadata']['headers']['x-rgw-bytes-used']);
+    $used = Admin::formatBytes($result['@metadata']['headers']['x-rgw-bytes-used']);
     $object_count = $result['@metadata']['headers']['x-rgw-object-count'];
 }
 
 ?>
 <div class="acs-bucket-list">
     <h4> <?php echo __( 'URL PREVIEW', 'arvancloud-object-storage' ) ?> </h4>
-    <span><?php echo get_storage_url() ?></span>
+    <span><?php echo Helper::get_storage_url() ?></span>
 </div>
 
 <form method="post">
@@ -38,7 +41,7 @@ if ( $result ) {
         <tbody>
             <tr>
                 <th><span><?php echo __( 'Bucket: ', 'arvancloud-object-storage' ) ?></span></th>
-                <td><span><?php echo get_bucket_name() ?></span> <a class="acs-change-btn" href="<?php echo admin_url( '/admin.php?page=wp-arvancloud-storage&action=change-bucket' ) ?>"><?php echo __( "Change Bucket", 'arvancloud-object-storage' ) ?></a> <a class="acs-change-btn" href="<?php echo admin_url( '/admin.php?page=wp-arvancloud-storage&action=create-bucket' ) ?>"><?php echo __( "Create Bucket", 'arvancloud-object-storage' ) ?></a></td>
+                <td><span><?php echo Helper::get_bucket_name() ?></span> <a class="acs-change-btn" href="<?php echo admin_url( '/admin.php?page=wp-arvancloud-storage&action=change-bucket' ) ?>"><?php echo __( "Change Bucket", 'arvancloud-object-storage' ) ?></a> <a class="acs-change-btn" href="<?php echo admin_url( '/admin.php?page=wp-arvancloud-storage&action=create-bucket' ) ?>"><?php echo __( "Create Bucket", 'arvancloud-object-storage' ) ?></a></td>
             </tr>
             <?php
             if ( $result ) {

@@ -1,4 +1,5 @@
 <?php
+namespace WP_Arvan\OBS;
 /**
  * Fired during plugin activation.
  *
@@ -9,7 +10,7 @@
  * @subpackage Wp_Arvancloud_Storage/includes
  * @author     Khorshid <info@khorshidlab.com>
  */
-class Wp_Arvancloud_Storage_Activator {
+class Activator {
 
 	/**
 	 * Short Description. (use period)

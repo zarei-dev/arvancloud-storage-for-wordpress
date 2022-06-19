@@ -7,5 +7,5 @@
         ?>
     </p>
     
-    <?php require_once( ACS_PLUGIN_ROOT . 'admin/partials/wp-arvancloud-storage-footer.php' ); ?>
+    <?php require_once( ACS_PLUGIN_ROOT . 'admin/partials/components/footer.php' ); ?>
 </div>

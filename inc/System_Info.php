@@ -1,6 +1,7 @@
 <?php
+namespace WP_Arvan\OBS;
 
-class ArvanCloud_Sytem_Info {
+class System_Info {
 
 	public function get_info() {
 

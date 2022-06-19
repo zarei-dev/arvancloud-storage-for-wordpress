@@ -1,4 +1,7 @@
 <?php
+namespace WP_Arvan\OBS;
+
+use WP_Arvan\OBS\Admin\Admin;
 
 /**
  * The core plugin class.
@@ -14,7 +17,7 @@
  * @subpackage Wp_Arvancloud_Storage/includes
  * @author     Khorshid <info@khorshidlab.com>
  */
-class Wp_Arvancloud_Storage {
+class Storage {
 
 	/**
 	 * The loader that's responsible for maintaining and registering all hooks that power
@@ -86,27 +89,7 @@ class Wp_Arvancloud_Storage {
 	 */
 	private function load_dependencies() {
 
-		/**
-		 * The class responsible for orchestrating the actions and filters of the
-		 * core plugin.
-		 */
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-wp-arvancloud-storage-loader.php';
-
-		/**
-		 * The class responsible for defining internationalization functionality
-		 * of the plugin.
-		 */
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-wp-arvancloud-storage-i18n.php';
-
-		/**
-		 * The class responsible for defining all actions that occur in the admin area.
-		 */
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'admin/class-wp-arvancloud-storage-admin.php';
-
-
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-wp-arvancloud-system-info.php';
-
-		$this->loader = new Wp_Arvancloud_Storage_Loader();
+		$this->loader = new Loader();
 
 	}
 
@@ -121,7 +104,7 @@ class Wp_Arvancloud_Storage {
 	 */
 	private function set_locale() {
 
-		$plugin_i18n = new Wp_Arvancloud_Storage_i18n();
+		$plugin_i18n = new i18n();
 
 		$this->loader->add_action( 'plugins_loaded', $plugin_i18n, 'load_plugin_textdomain' );
 
@@ -136,7 +119,7 @@ class Wp_Arvancloud_Storage {
 	 */
 	private function define_admin_hooks() {
 
-		$plugin_admin = new Wp_Arvancloud_Storage_Admin( $this->get_plugin_name(), $this->get_version() );
+		$plugin_admin = new Admin( $this->get_plugin_name(), $this->get_version() );
 
 		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_styles' );
 		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_scripts' );
@@ -188,7 +171,7 @@ class Wp_Arvancloud_Storage {
 	 * The reference to the class that orchestrates the hooks with the plugin.
 	 *
 	 * @since     1.0.0
-	 * @return    Wp_Arvancloud_Storage_Loader    Orchestrates the hooks of the plugin.
+	 * @return    Loader    Orchestrates the hooks of the plugin.
 	 */
 	public function get_loader() {
 		return $this->loader;

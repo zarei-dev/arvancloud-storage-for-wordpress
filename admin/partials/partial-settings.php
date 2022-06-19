@@ -1,7 +1,12 @@
+<?php
+use WP_Arvan\OBS\Helper;
+use WP_Arvan\OBS\Admin\Partials;
+?>
+
 <div class="wrap">
     <?php
     if (isset( $_GET['system-info'] ) && $_GET['system-info'] == true) {
-        require_once( ACS_PLUGIN_ROOT . 'admin/partials/partial-system-info.php' );
+        Partials::system_info();
         return;
     } else if ( isset( $_GET['bulk_upload'] ) && $_GET['bulk_upload'] == true ) {
         ?>
@@ -11,7 +16,7 @@
         </div>
         <hr>
         <?php
-        require_once( ACS_PLUGIN_ROOT . 'admin/partials/wp-arvancloud-move-files.php' );
+        Partials::move_files();
         return;
     } else {
 
@@ -21,11 +26,11 @@
         $bucket_selected = false;
         $acs_settings    = false;
     
-        if( $acs_settings_option = get_storage_settings() ) {
+        if( $acs_settings_option = Helper::get_storage_settings() ) {
             $config_type         = $acs_settings_option['config-type'];
             $snippet_defined     = defined( 'ARVANCLOUD_STORAGE_SETTINGS' );
             $db_defined          = $config_type == 'db' && ! empty( $acs_settings_option['access-key'] ) && ! empty( $acs_settings_option['secret-key'] ) && ! empty( $acs_settings_option['endpoint-url'] ) ? true : false;
-            $bucket_selected     = get_bucket_name();
+            $bucket_selected     = Helper::get_bucket_name();
             $acs_settings	     = get_option( 'acs_settings' );
     
         }
@@ -62,18 +67,17 @@
 
     if( ( ! $db_defined && ! $snippet_defined ) || ( isset( $_GET[ 'action' ] ) && $_GET[ 'action' ] == 'change-access-option' ) ) {
 
-        // change access option
-        require_once( ACS_PLUGIN_ROOT . 'admin/partials/partial-set-api-key.php' );
+        Partials::set_api_key();
 
     } elseif( ! $bucket_selected || ( isset( $_GET[ 'action' ] ) && $_GET[ 'action' ] == 'change-bucket' ) ) {
 
         // change bucket
-        require_once( ACS_PLUGIN_ROOT . 'admin/partials/partial-change-bucket.php' );
+        Partials::change_bucket();
 
     } else if (isset( $_GET[ 'action' ] ) && $_GET[ 'action' ] == 'create-bucket') {
 
         // create bucket
-        require_once( ACS_PLUGIN_ROOT . 'admin/partials/partial-create-bucket.php' );
+        Partials::create_bucket();
 
     } else {
         // Bucket List
@@ -82,9 +86,10 @@
                 <p>'. esc_html__( "Selected bucket saved.", 'arvancloud-object-storage' ) .'</p>
             </div>';
         }
-        require_once( ACS_PLUGIN_ROOT . 'admin/partials/partial-bucket-list.php' );
+        Partials::bucket_list();
+
     }
 
-    require_once( ACS_PLUGIN_ROOT . 'admin/partials/wp-arvancloud-storage-footer.php' );
+    require_once( ACS_PLUGIN_ROOT . 'admin/partials/components/footer.php' );
     ?>
 </div>
