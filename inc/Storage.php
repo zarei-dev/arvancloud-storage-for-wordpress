@@ -145,6 +145,7 @@ class Storage {
 		$this->loader->add_filter( 'wp_update_attachment_metadata', $plugin_admin, 'wp_update_attachment_metadata', 110, 2 );
 		$this->loader->add_action( 'wp_ajax_ar_bulk_upload_res', $plugin_admin, 'ajax_bulk_upload_res' );
 		$this->loader->add_action( 'wp_ajax_ar_handle_bulk_upload', $plugin_admin, 'handle_bulk_upload' );
+		$this->loader->add_action( 'wp_ajax_ar_generate_acl_url', $plugin_admin, 'handle_generate_acl_url' );
 		$this->loader->add_filter( 'get_site_icon_url', $plugin_admin, 'get_site_icon_url' , 99, 3 );
 
 	}

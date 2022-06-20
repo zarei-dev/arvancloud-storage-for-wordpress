@@ -334,3 +334,28 @@ a {
     border-color: #0a4b78;
     color: #0a4b78;
 }
+
+#arvancloud-storage-ACL-metabox .inside {
+    padding: 0;
+}
+
+#arvancloud-storage-ACL-metabox .inside .form-group,
+.arvancloud-storage-generated_urls {
+	padding: 0 10px;
+}
+
+.acl-url-generator-holder {
+    text-align: right;
+    line-height: 1.9;
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 10px;
+    padding: 10px;
+    clear: both;
+    border-top: 1px solid #dcdcde;
+    background: #f6f7f7;
+}
+
+.arvancloud-storage-generated_urls li {
+    margin-bottom: 10px;
+}

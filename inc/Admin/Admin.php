@@ -4,6 +4,7 @@ use WP_Arvan\OBS\Helper;
 use Aws\Exception\AwsException;
 use Aws\S3\MultipartUploader;
 use Aws\Exception\MultipartUploadException;
+use PO;
 use WP_Encryption\Encryption;
 
 
@@ -104,6 +105,7 @@ class Admin {
 			'strings' => $this->get_media_action_strings(),
 			'nonces'  => array(
 				'get_attachment_provider_details' => wp_create_nonce( 'get-attachment-s3-details' ),
+				'generate_acl_url' => wp_create_nonce( 'generate_acl_url' ),
 			),
 			'ajax_url'  => admin_url( 'admin-ajax.php' ),
 		) );
@@ -635,7 +637,7 @@ class Admin {
 			// Show private files in admin
 			if ( is_admin() && get_post_meta( $post_id, 'acs_acl', true ) == 'private' ) {
 
-				return $this->get_object_private_url( $post_id, $file_name, 86400);
+				return $this->get_object_private_url( $post_id, $file_name, 8640);
 			}
 		}
 
@@ -649,16 +651,17 @@ class Admin {
 
 		$bucket_selected = $this->bucket_name;
 
-		// get private object url s3
+		// convert $expiry from minutes to string
 
-		
+		$date = (new \DateTime())->modify("+$expiry minutes");
+
 		try {
 			$result = $client->getCommand('GetObject', [
 				'Bucket' => $bucket_selected,
 				'Key' => $file_key,
 			]);
 			
-			$request = $client->createPresignedRequest($result, '+1 day');
+			$request = $client->createPresignedRequest($result, $date);
 
 			$presignedUrl = (string)$request->getUri();
 
@@ -1270,8 +1273,123 @@ class Admin {
 				'default'
 			);
 
+			$post_id = get_the_ID();
 
+			if ( get_post_meta( $post_id, 'acs_acl', true ) === 'private' && !isset($_GET['change_acl']) ||
+			(isset($_GET['change_acl']) && isset($_GET['acl']) && sanitize_text_field( $_GET['acl'] ) === 'private')) {
+				add_meta_box(
+					'arvancloud-storage-ACL-metabox',
+					__( 'Generate Presigned URL', 'arvancloud-object-storage' ),
+					array( $this, 'render_private_url_generator_metabox' ),
+					'attachment',
+					'side',
+					'default'
+				);
+			}
     }
+
+	public function render_private_url_generator_metabox() {
+
+		
+		$post_id = get_the_ID();
+		
+		$presigned_urls = get_post_meta($post_id, 'acs_presigned_urls', true);
+		?>
+		<div class="arvancloud-storage-generated_urls">
+			<ul>
+				<?php
+				if (!empty($presigned_urls)){
+					foreach($presigned_urls as $url) {
+						if (!isset($url['url'])) {
+							continue;
+						}
+						$date = (new \DateTime($url['expire']));
+						$date1 = (new \DateTime("now"));
+						$diff = date_diff($date1, $date);
+						if ($diff->format('%r') == '-') {
+							continue;
+						}
+						echo '<li>
+								<input type="text" class="widefat urlfield" readonly="readonly" value="'. $url['url'] .'">
+								<span>'. $diff->format(__('%d Days, %h Hours, %i Minutes', 'arvancloud-object-storage')) .'</span>
+							</li>';
+					}
+				}
+				?>
+			</ul>
+	
+		</div>
+			<div class="form-group">
+				<label for="arvancloud-storage-acl-expiry">
+					<?php _e( 'Expiry', 'arvancloud-object-storage' ); ?>
+				</label>
+				<select class="form-control" id="arvancloud-storage-acl-expiry" name="arvancloud-storage-acl-expiry">
+					<option value="5"><?php _e('5 minutes', 'arvancloud-object-storage'); ?></option>
+					<option value="30"><?php _e('30 minutes', 'arvancloud-object-storage'); ?></option>
+					<option value="60"><?php _e('1 hour', 'arvancloud-object-storage'); ?></option>
+					<option value="720"><?php _e('12 hours', 'arvancloud-object-storage'); ?></option>
+					<option value="1440"><?php _e('1 day', 'arvancloud-object-storage'); ?></option>
+					<option value="10080"><?php _e('1 week', 'arvancloud-object-storage'); ?></option>
+				</select>
+				<input type="hidden" name="acl-post-id" value="<?php echo $post_id ?>">
+			</div>
+			<div class="acl-url-generator-holder">
+				<button type="button" class="button" id="arvancloud-storage-acl-url-generator-button">
+					<?php _e( 'Generate Presigned URL', 'arvancloud-object-storage' ); ?>
+				</button>
+			</div>
+
+		<?php
+	}
+
+	public function handle_generate_acl_url() {
+
+		check_ajax_referer( 'generate_acl_url', '_nonce' );
+
+		$post_id = sanitize_text_field( $_GET['post_id'] );
+		$expiry = sanitize_text_field( $_GET['expiry'] );
+
+		$storage_file_url = get_the_guid($post_id);
+
+		if( empty( $storage_file_url ) || empty( $expiry ) || empty( $post_id ) ) {
+			wp_send_json_error( array(
+				'message' => __( 'Something went wrong. Please try again.', 'arvancloud-object-storage' ),
+			) );
+			wp_die();
+		}
+
+
+		$file_name = basename( $storage_file_url );
+
+		
+		$url = $this->generate_private_url( $file_name, $expiry );
+		
+		$expiry++;
+		$date = (new \DateTime())->modify("+$expiry minutes");
+		$date1 = (new \DateTime("now"));
+		$diff = date_diff($date1, $date);
+		
+		if (empty(get_post_meta($post_id, 'acs_presigned_urls'))) {
+			update_post_meta($post_id, 'acs_presigned_urls', array());
+		}
+		$presigned_urls = get_post_meta($post_id, 'acs_presigned_urls', true);
+		array_push($presigned_urls, array(
+			'url'	=> $url,
+			'expire'=> $date->format('Y/m/d H:i:s')
+		));
+		update_post_meta($post_id, 'acs_presigned_urls', $presigned_urls);
+		
+		wp_send_json_success( array(
+			'url' => $url,
+			'expiry' => __('Time left: ', 'arvancloud-object-storage') . $diff->format(__('%d Days, %h Hours, %i Minutes', 'arvancloud-object-storage')),
+		), 200 );
+		
+
+
+		wp_die();
+
+	}
+
 
 	/**
 	 * render_edit_attachment_metabox
