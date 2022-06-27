@@ -8,6 +8,7 @@
     ],
     "require": {
         "aws/aws-sdk-php": "^3.185",
-        "symfony/polyfill-mbstring": "1.20.0"
+        "symfony/polyfill-mbstring": "1.20.0",
+        "wpbp/debug": "dev-master"
     }
 }
